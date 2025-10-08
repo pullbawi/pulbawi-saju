@@ -60,15 +60,21 @@ input{padding:12px;border:1px solid #ccc;border-radius:10px;font-size:18px;text-
 .g-big.metal{background:var(--metal)}
 .g-big.water{background:var(--water)}
 
-/* 레일(4칸 뷰) */
+/* 레일(4칸 뷰) — ✅ 오른쪽에서 왼쪽으로(ROW-REVERSE) & 오른쪽 기준 */
 .railWrap{
   width:min(100%,calc(var(--tileW)*4 + var(--gap)*3 + var(--rail-pad)));
   margin:0 auto;overflow-x:auto;overflow-y:hidden;
   -webkit-overflow-scrolling:touch;padding-bottom:6px;
 }
-.rail{display:inline-flex;flex-direction:row-reverse;gap:var(--gap);
-  padding:6px 8px 10px;flex-wrap:nowrap;justify-content:flex-start;
-  scroll-snap-type:x proximity}
+.rail{
+  display:inline-flex;
+  flex-direction:row-reverse;        /* 오른쪽→왼쪽 */
+  gap:var(--gap);
+  padding:6px 8px 10px;
+  flex-wrap:nowrap;
+  justify-content:flex-start;        /* row-reverse 기준 오른쪽 정렬 */
+  scroll-snap-type:x proximity;
+}
 .tile{
   min-width:var(--tileW);border:1px solid var(--line);border-radius:12px;
   background:#fff;padding:6px;text-align:center;cursor:pointer;
@@ -82,6 +88,7 @@ input{padding:12px;border:1px solid #ccc;border-radius:10px;font-size:18px;text-
 /* 계산 전 숨김 */
 #resultSection{display:none;}
 
+/* 모바일 대응 */
 @media(max-width:600px){.g-big .gbtxt{transform:translateY(-1.2px)}}
 @media(max-width:480px){
   .form{grid-template-columns:repeat(2,1fr);gap:12px}
@@ -100,6 +107,27 @@ input{padding:12px;border:1px solid #ccc;border-radius:10px;font-size:18px;text-
   .tile .g-big{font-size:18px;padding:5px 0}
   .headTop{font-size:11px}
 }
+
+/* ✅ 모바일 원국 가로 확장 + 내부 폰트 2단계 축소 */
+@media screen and (max-width: 768px) {
+  .pillars{
+    justify-content:space-between;
+    gap:10px;
+    transform:none;
+    width:100%;
+    max-width:100%;
+    padding:0 4px;
+  }
+  .pillar{
+    flex:1 1 24%;
+    width:auto;
+    padding:10px 4px;
+  }
+  .pillar h3{font-size:12px;padding:4px 0}
+  .g-big{font-size:20px;padding:6px 0}    /* 🔽 기존 25px → 20px (5단계 축소) */
+  .g-sip{font-size:11.5px}
+}
+
 </style>
 </head>
 <body>
@@ -150,6 +178,7 @@ input{padding:12px;border:1px solid #ccc;border-radius:10px;font-size:18px;text-
     <div class="railWrap"><div id="monthRail" class="rail"></div></div>
   </div>
 </section>
+
 
 <script>
 /* ===== 입력 숫자 길이 제한 ===== */
@@ -347,10 +376,12 @@ function bindRails(){
     const cap=+t.dataset.cap; const idx=Math.floor((cap-STATE.startAge)/10);
     STATE.decadeIdx=Math.max(0,Math.min(7,idx)); STATE.yearVal=null;
     buildDecades(); buildYears(); buildMonths();
+    scrollToRight();
   };
   document.getElementById("yearRail").onclick=(e)=>{
     const t=e.target.closest(".tile"); if(!t) return;
     STATE.yearVal=+t.dataset.cap; buildYears(); buildMonths();
+    scrollToRight();
   };
   document.getElementById("monthRail").onclick=(e)=>{
     const t=e.target.closest(".tile"); if(!t) return;
@@ -380,6 +411,7 @@ window.go=function(){
   document.getElementById('originBox').innerHTML=renderOrigin(y,m,d,hh,mm);
   buildDecades(); buildYears(); buildMonths(); bindRails();
   wrapGlyphs();
+  scrollToRight(); // ✅ 최신(오른쪽) 기준으로 스크롤 맞추기
 };
 
 window.capture=function(){
@@ -387,6 +419,13 @@ window.capture=function(){
     const a=document.createElement('a'); a.download='pulbawi_saju.png'; a.href=cv.toDataURL(); a.click();
   });
 };
+
+/* 오른쪽 끝으로 스크롤 이동 */
+function scrollToRight() {
+  document.querySelectorAll('.railWrap').forEach(el => {
+    el.scrollLeft = el.scrollWidth;
+  });
+}
 </script>
 </body>
 </html>
