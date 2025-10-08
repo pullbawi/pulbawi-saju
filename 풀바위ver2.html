@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>풀바위 사주 계산기 v4.3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+<style>
+:root{
+  --wood:#228b22; --fire:#d03333; --earth:#d4a017; --metal:#bfbfbf; --water:#1e40af;
+  --fg:#000; --bg:#fff; --line:#e6e6e6;
+  --hanja-font:"Noto Serif JP",serif; --hanja-weight:600; --hanja-track:.01em;
+  --tileW:92px; --gap:10px; --rail-pad:16px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);
+  font-family:"Noto Sans KR",system-ui,Apple SD Gothic Neo,Malgun Gothic,sans-serif}
+
+/* 공통 UI */
+.btn{border:0;border-radius:10px;padding:10px 18px;cursor:pointer;font-size:16px}
+.btn-dark{background:#000;color:#fff}
+.btn-ghost{background:#f4f5f7;color:#111}
+.sectionTitle{margin:28px 0 8px;text-align:center;font-weight:900}
+.g-sip{font-size:13px;color:#666;text-align:center}
+
+/* 페이지 */
+#app{max-width:1100px;margin:0 auto;padding:28px 16px 64px}
+h1{margin:0 0 8px;text-align:center}
+.sub{margin:0 0 20px;text-align:center;color:#666}
+.form{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:720px;margin:0 auto}
+label{font-size:14px;color:#444;display:block;margin-bottom:6px;text-align:center}
+input{padding:12px;border:1px solid #ccc;border-radius:10px;font-size:18px;text-align:center;width:100%}
+.genderBox{display:flex;justify-content:center;gap:18px;margin:14px 0}
+.genderBox label{font-size:16px;color:#222}
+.topbar{display:flex;justify-content:center;gap:8px;margin:6px 0 20px}
+
+/* 원국 */
+.pillars{display:flex;flex-direction:row-reverse;gap:14px;justify-content:center;margin-top:14px}
+.pillar{border:1px solid var(--line);border-radius:12px;background:#fff;width:170px;padding:10px;text-align:center}
+.pillar h3{margin:0 0 8px;background:#f2f2f2;border-radius:8px;padding:6px 0;font-size:14px;color:#444}
+.gz{display:grid;grid-template-rows:auto auto auto auto;gap:6px}
+
+/* 한자 */
+.g-big{
+  font-family:var(--hanja-font);font-weight:var(--hanja-weight);letter-spacing:var(--hanja-track);
+  font-size:28px;border-radius:10px;padding:8px 0;color:#fff !important;
+  text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;
+  position:relative;box-shadow:0 1px 0 rgba(0,0,0,.06) inset;
+}
+.g-big .gbtxt{display:inline-block;line-height:1;transform:translateY(-1.6px);}
+
+/* 오행색 */
+.g-big.wood{background:var(--wood)}
+.g-big.fire{background:var(--fire)}
+.g-big.earth{background:var(--earth)}
+.g-big.metal{background:var(--metal)}
+.g-big.water{background:var(--water)}
+
+/* 레일(4칸 뷰) */
+.railWrap{
+  width:min(100%,calc(var(--tileW)*4 + var(--gap)*3 + var(--rail-pad)));
+  margin:0 auto;overflow-x:auto;overflow-y:hidden;
+  -webkit-overflow-scrolling:touch;padding-bottom:6px;
+}
+.rail{display:inline-flex;flex-direction:row-reverse;gap:var(--gap);
+  padding:6px 8px 10px;flex-wrap:nowrap;justify-content:flex-start;
+  scroll-snap-type:x proximity}
+.tile{
+  min-width:var(--tileW);border:1px solid var(--line);border-radius:12px;
+  background:#fff;padding:6px;text-align:center;cursor:pointer;
+  transition:.15s;flex:0 0 auto;scroll-snap-align:center;
+}
+.headTop{font-size:12px;color:#555;margin-bottom:4px}
+.tile .g-big{font-size:22px;margin:0 0 2px}
+.tile .g-big .gbtxt{transform:translateY(-1.2px)}
+.tile.active{border:2px solid #000;box-shadow:0 6px 16px rgba(0,0,0,.18)}
+
+/* 계산 전 숨김 */
+#resultSection{display:none;}
+
+@media(max-width:600px){.g-big .gbtxt{transform:translateY(-1.2px)}}
+@media(max-width:480px){
+  .form{grid-template-columns:repeat(2,1fr);gap:12px}
+  input{font-size:16px;padding:10px}
+  .genderBox{margin:12px 0;gap:14px}
+  .btn{font-size:15px;padding:10px 16px}
+  .pillars{gap:10px;margin-top:8px}
+  .pillar{width:112px;padding:8px}
+  .pillar h3{font-size:12px;padding:4px 0}
+  .g-big{font-size:22px;padding:6px 0}
+  .g-big .gbtxt{transform:translateY(-1px)}
+  .g-sip{font-size:11px}
+  .sectionTitle{font-size:18px;margin:18px 0 6px}
+  :root{--tileW:78px;--gap:10px}
+  .tile{min-width:var(--tileW);padding:6px}
+  .tile .g-big{font-size:18px;padding:5px 0}
+  .headTop{font-size:11px}
+}
+</style>
+</head>
+<body>
+
+<section id="app">
+  <h1>풀바위 사주 계산기</h1>
+  <p class="sub">양력 기준 · 자시경계(23:30~01:29) · 한국시간 기준 −30분 보정</p>
+
+<div class="form">
+  <div>
+    <label>년</label>
+    <input id="y" type="number" maxlength="4" oninput="limitDigits(this,4)" autocomplete="off">
+  </div>
+  <div>
+    <label>월</label>
+    <input id="m" type="number" maxlength="2" oninput="limitDigits(this,2)" autocomplete="off">
+  </div>
+  <div>
+    <label>일</label>
+    <input id="d" type="number" maxlength="2" oninput="limitDigits(this,2)" autocomplete="off">
+  </div>
+  <div>
+    <label>시 (HH 또는 HHmm)</label>
+    <input id="t" type="text" inputmode="numeric" maxlength="4" oninput="limitDigits(this,4)" autocomplete="off">
+  </div>
+</div>
+
+  <div class="genderBox">
+    <label><input type="radio" name="sex" value="m" checked> 남성</label>
+    <label><input type="radio" name="sex" value="f"> 여성</label>
+  </div>
+
+  <div class="topbar">
+    <button class="btn btn-dark" onclick="go()">계산하기</button>
+    <button class="btn btn-ghost" onclick="capture()">📸 캡처</button>
+  </div>
+
+  <div id="resultSection">
+    <div id="originBox" class="pillars"></div>
+
+    <div class="sectionTitle">대운 (10년)</div>
+    <div class="railWrap"><div id="decadeRail" class="rail"></div></div>
+
+    <div class="sectionTitle">세운 (1년)</div>
+    <div class="railWrap"><div id="yearRail" class="rail"></div></div>
+
+    <div class="sectionTitle">월운 (1월)</div>
+    <div class="railWrap"><div id="monthRail" class="rail"></div></div>
+  </div>
+</section>
+
+<script>
+/* ===== 입력 숫자 길이 제한 ===== */
+function limitDigits(el,n){ el.value = el.value.replace(/\D/g,'').slice(0,n); }
+
+/* ===== 상수/유틸 ===== */
+const STEMS_KO=["갑","을","병","정","무","기","경","신","임","계"];
+const STEMS_HA=["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"];
+const BRANCH_KO=["자","축","인","묘","진","사","오","미","신","유","술","해"];
+const BRANCH_HA=["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
+const MS=86400000;
+
+const elemStem=i=>["목","목","화","화","토","토","금","금","수","수"][i%10];
+const elemBranch=i=>["수","토","목","목","토","화","화","토","금","금","토","수"][i%12];
+const isYangStem = i => [1,0,1,0,1,0,1,0,1,0][i%10]===1;
+const isYangBranch = i => [1,0,1,0,1,0,1,0,1,0,1,1][i%12]===1;
+
+const cls=(isStem,i)=>({목:"wood",화:"fire",토:"earth",금:"metal",수:"water"})[isStem?elemStem(i):elemBranch(i)];
+const parseHM=v=>{const s=(v||"").replace(/\D/g,""); if(!s) return [NaN,NaN]; return s.length<=2?[+s,0]:[+s.slice(0,2), +s.slice(2,4)||0];};
+const getIsMale=()=>document.querySelector('input[name="sex"]:checked')?.value==="m";
+
+/* 텍스트 수직 보정 */
+function wrapGlyphs(){
+  document.querySelectorAll('.g-big').forEach(el=>{
+    if(!el.querySelector('.gbtxt')){
+      const txt = el.textContent.trim();
+      if(!txt) return;
+      el.innerHTML = '<span class="gbtxt">'+txt+'</span>';
+    }
+  });
+}
+
+/* ===== 십성 ===== */
+function tenGod(dayElem,isYangDay,otherElem,isYangOther){
+  const order=["목","화","토","금","수"];
+  const di=order.indexOf(dayElem), oi=order.indexOf(otherElem);
+  const genTo=(di+1)%5, ctrlTo=(di+2)%5, genFrom=(di+4)%5, ctrlBy=(di+3)%5;
+  if(oi===di) return (isYangDay===isYangOther)?"비견":"겁재";
+  if(oi===genTo) return (isYangDay===isYangOther)?"식신":"상관";
+  if(oi===ctrlTo) return (isYangDay===isYangOther)?"편재":"정재";
+  if(oi===ctrlBy) return (isYangDay===isYangOther)?"편관":"정관";
+  if(oi===genFrom) return (isYangDay===isYangOther)?"편인":"정인";
+  return "";
+}
+
+/* ===== 간지 계산 ===== */
+function sexagenaryDay(y,m,d){
+  const base=new Date(1984,1,2,0,0,0);
+  const cur=new Date(y,m-1,d,0,0,0);
+  let idx=Math.floor((cur-base)/MS)%60; if(idx<0) idx+=60;
+  idx=(idx+2)%60;
+  return [idx%10, idx%12];
+}
+function sexagenaryYear(y,m,d){
+  const ip=new Date(y,1,4); // 입춘 근사
+  const y2=(new Date(y,m-1,d)<ip)?y-1:y;
+  const idx=((y2-1984)%60+60)%60;
+  return [idx%10, idx%12];
+}
+function sexagenaryMonth(y,m,d){
+  const marks=[6,4,6,5,5,6,7,7,7,8,7,7];
+  const checks=[{ts:new Date(y-1,11,7,9,0,0).getTime(), b:0}];
+  for(let mm=1;mm<=12;mm++) checks.push({ts:new Date(y,mm-1,marks[mm-1],9,0,0).getTime(), b:mm%12});
+  const t=new Date(y,m-1,d,9,0,0).getTime();
+  let bIdx=0; for(const c of checks) if(t>=c.ts) bIdx=c.b;
+  const [yS]=sexagenaryYear(y,m,d);
+  const tiger=[2,4,6,8,0,2,4,6,8,0];
+  const start=tiger[(yS+10)%10];
+  const off=(bIdx-2+12)%12;
+  const mStem=(start+off)%10;
+  return [mStem,bIdx];
+}
+function sexagenaryHour(y,m,d,h,mm=0){
+  let base=new Date(y,m-1,d,h,mm);
+  base.setMinutes(base.getMinutes()-30);
+  let ah=base.getHours(), ay=base.getFullYear(), amn=base.getMonth()+1, ad=base.getDate();
+  if(ah===23){ah=0; ad+=1;}
+  const [dS]=sexagenaryDay(ay,amn,ad);
+  const hb=Math.floor((ah+1)/2)%12;
+  const start=[0,2,4,6,8][dS%5];
+  const hs=(start+hb)%10;
+  return [hs,hb];
+}
+
+/* ===== 절입일 & 대운 시작나이 ===== */
+function termDate(y,m){ const day=[6,4,6,5,5,6,7,7,7,8,7,7][m-1]; return new Date(y,m-1,day,9,0,0); }
+function prevNextTerm(y,m,d,h,mm){
+  const birth=new Date(y,m-1,d,h,mm), cur=termDate(y,m);
+  let prev,next;
+  if(birth<cur){ prev=(m===1)?termDate(y-1,12):termDate(y,m-1); next=cur; }
+  else { prev=cur; next=(m===12)?termDate(y+1,1):termDate(y,m+1); }
+  return {prev,next,birth};
+}
+function ageFromDays(days){
+  const total = Math.max(0, days);
+  const val = Math.round(total / 3);
+  return Math.max(1, Math.min(val, 9));
+}
+function calcStartAge(y,m,d,h,mm,isMale,yearStemIdx){
+  const {prev,next,birth}=prevNextTerm(y,m,d,h,mm);
+  const forward=(isMale && isYangStem(yearStemIdx)) || (!isMale && !isYangStem(yearStemIdx));
+  const dayMS=1000*60*60*24;
+  const diff=forward ? (next-birth)/dayMS : (birth-prev)/dayMS;
+  const age=ageFromDays(Math.abs(diff));
+  return Math.max(1, Math.min(age, 9));
+}
+
+/* ===== 상태 ===== */
+let STATE={y:0,m:0,d:0,h:0,mm:0,isMale:false, dayStem:0, startAge:1, decadeIdx:0, yearVal:null, forward:true};
+
+/* ===== 렌더 ===== */
+function renderOrigin(y,m,d,h,mm){
+  const [yS,yB]=sexagenaryYear(y,m,d);
+  const [mS,mB]=sexagenaryMonth(y,m,d);
+  const [dS,dB]=sexagenaryDay(y,m,d);
+  const [hS,hB]=sexagenaryHour(y,m,d,h,mm);
+  const dayElem=elemStem(dS), isYangDay=isYangStem(dS);
+  const items=[
+    {title:"연주",s:yS,b:yB},
+    {title:"월주",s:mS,b:mB},
+    {title:"일주",s:dS,b:dB},
+    {title:"시주",s:hS,b:hB},
+  ];
+  return items.map(it=>{
+    const tgS=(it.title==="일주")?"나(자신)":tenGod(dayElem,isYangDay,elemStem(it.s),isYangStem(it.s));
+    const tgB=tenGod(dayElem,isYangDay,elemBranch(it.b),isYangBranch(it.b));
+    return `<div class="pillar">
+      <h3>${it.title}</h3>
+      <div class="gz">
+        <div class="g-big ${cls(true,it.s)}">${STEMS_KO[it.s]}(${STEMS_HA[it.s]})</div>
+        <div class="g-sip">${tgS}</div>
+        <div class="g-big ${cls(false,it.b)}">${BRANCH_KO[it.b]}(${BRANCH_HA[it.b]})</div>
+        <div class="g-sip">${tgB}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function tileHTML({type,cap,s,b,active,dayElem,isYangDay}){
+  const tgS=tenGod(dayElem,isYangDay,elemStem(s),isYangStem(s));
+  const tgB=tenGod(dayElem,isYangDay,elemBranch(b),isYangBranch(b));
+  return `<div class="tile ${active?'active':''}" data-type="${type}" data-cap="${cap}" data-s="${s}" data-b="${b}">
+    <div class="headTop">${cap}</div>
+    <div class="g-big ${cls(true,s)}">${STEMS_HA[s]}</div>
+    <div class="g-sip">${tgS}</div>
+    <div class="g-big ${cls(false,b)}">${BRANCH_HA[b]}</div>
+    <div class="g-sip">${tgB}</div>
+  </div>`;
+}
+
+/* ===== 운 레일 ===== */
+function buildDecades(){
+  const [mS,mB]=sexagenaryMonth(STATE.y,STATE.m,STATE.d);
+  const dayElem=elemStem(STATE.dayStem), isYangDay=isYangStem(STATE.dayStem);
+  const dir=STATE.forward?1:-1; const norm=(v,mod)=>((v%mod)+mod)%mod;
+
+  let html="";
+  for(let i=0;i<8;i++){
+    const s=norm(mS + dir*(i+1), 10);
+    const b=norm(mB + dir*(i+1), 12);
+    const cap=STATE.startAge + i*10;
+    html+=tileHTML({type:"decade",cap,s,b,active:(i===STATE.decadeIdx),dayElem,isYangDay});
+  }
+  document.getElementById("decadeRail").innerHTML=html;
+  wrapGlyphs();
+}
+const decadeBaseYear=()=> STATE.y + (STATE.startAge-1) + STATE.decadeIdx*10;
+function buildYears(){
+  const start=decadeBaseYear();
+  const dayElem=elemStem(STATE.dayStem), isYangDay=isYangStem(STATE.dayStem);
+  let html="";
+  for(let i=0;i<10;i++){
+    const yr=start+i; const [s,b]=sexagenaryYear(yr,1,1);
+    html+=tileHTML({type:"year",cap:String(yr),s,b,active:(STATE.yearVal===yr),dayElem,isYangDay});
+  }
+  document.getElementById("yearRail").innerHTML=html;
+  wrapGlyphs();
+}
+function buildMonths(){
+  const yr=STATE.yearVal ?? decadeBaseYear();
+  const dayElem=elemStem(STATE.dayStem), isYangDay=isYangStem(STATE.dayStem);
+  let html="";
+  for(let m=1;m<=12;m++){
+    const [s,b]=sexagenaryMonth(yr,m,15);
+    html+=tileHTML({type:"month",cap:`${m}월`,s,b,active:false,dayElem,isYangDay});
+  }
+  document.getElementById("monthRail").innerHTML=html;
+  wrapGlyphs();
+}
+
+/* 레일 클릭 연동 */
+function bindRails(){
+  document.getElementById("decadeRail").onclick=(e)=>{
+    const t=e.target.closest(".tile"); if(!t) return;
+    const cap=+t.dataset.cap; const idx=Math.floor((cap-STATE.startAge)/10);
+    STATE.decadeIdx=Math.max(0,Math.min(7,idx)); STATE.yearVal=null;
+    buildDecades(); buildYears(); buildMonths();
+  };
+  document.getElementById("yearRail").onclick=(e)=>{
+    const t=e.target.closest(".tile"); if(!t) return;
+    STATE.yearVal=+t.dataset.cap; buildYears(); buildMonths();
+  };
+  document.getElementById("monthRail").onclick=(e)=>{
+    const t=e.target.closest(".tile"); if(!t) return;
+    document.querySelectorAll("#monthRail .tile").forEach(x=>x.classList.remove("active"));
+    t.classList.add("active");
+  };
+}
+
+/* ===== 계산/캡처 ===== */
+window.go=function(){
+  const y=+document.getElementById('y').value,
+        m=+document.getElementById('m').value,
+        d=+document.getElementById('d').value;
+  const [hh,mm]=parseHM(document.getElementById('t').value);
+  if(!y||!m||!d||isNaN(hh)){alert("년/월/일/시간(HH 또는 HHmm)을 입력하세요.");return;}
+
+  const isMale=getIsMale();
+  const [yS]=sexagenaryYear(y,m,d);
+  const [dS]=sexagenaryDay(y,m,d);
+  const forward=(isMale && isYangStem(yS)) || (!isMale && !isYangStem(yS));
+  const startAge=calcStartAge(y,m,d,hh,mm,isMale,yS);
+
+  STATE={y,m,d,h:hh,mm,isMale, dayStem:dS, startAge, decadeIdx:0, yearVal:null, forward};
+
+  // 결과 표시 + 렌더
+  document.getElementById('resultSection').style.display='block';
+  document.getElementById('originBox').innerHTML=renderOrigin(y,m,d,hh,mm);
+  buildDecades(); buildYears(); buildMonths(); bindRails();
+  wrapGlyphs();
+};
+
+window.capture=function(){
+  html2canvas(document.getElementById('app'),{scale:2,backgroundColor:"#fff"}).then(cv=>{
+    const a=document.createElement('a'); a.download='pulbawi_saju.png'; a.href=cv.toDataURL(); a.click();
+  });
+};
+</script>
+</body>
+</html>
